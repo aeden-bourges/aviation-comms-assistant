@@ -41,5 +41,9 @@ Transition level 60`
     {
         label: "Missing QNH value",
         text: `Dubai information bravo runway 30 left wind 310 degrees at 12 knots qnh`
-    }
+    },
+    {
+        label: "Dew point two words",
+        text: `Dubai information bravo runway 30 left wind 310 degrees at 12 knots visibility 5000 meters qnh 1013 temperature 22 dew point 10 transition level 60`
+    },
 ]

@@ -29,6 +29,20 @@ function extractAfter(words, anchorWord, offset = 1) {
     return words[anchorIndex + offset] || ""
 }
 
+function extractAfterPhrase(words, anchorPhrase, offset = 1) {
+    const anchorWords = anchorPhrase.split(" ")
+
+    for (let i = 0; i <= words.length - anchorWords.length; i++) {
+        const possibleMatch = words.slice(i, i + anchorWords.length)
+
+        if (possibleMatch.join(" ") === anchorPhrase) {
+            return words[i + anchorWords.length + offset - 1] || ""
+        }
+    }
+
+    return ""
+}
+
 function displayField(value) {
     return value || "not detected"
 }
@@ -78,8 +92,8 @@ function parseAtis(text) {
 
     const qnhField = extractAfter(words, "qnh")
     const temperatureField = extractAfter(words, "temperature")
-    const dewpointField = extractAfter(words, "dewpoint")
-    const transitionLevelField = extractAfter(words, "transition", 2)
+    const dewpointField = extractAfter(words, "dewpoint") || extractAfterPhrase(words, "dew point")
+    const transitionLevelField = extractAfterPhrase(words, "transition level")
 
     return {
         airport: airportName,
