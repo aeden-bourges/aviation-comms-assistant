@@ -64,7 +64,8 @@ Sky: ${displayField(data.sky)}
 Pressure: ${displayField(data.pressure)}
 Temperature: ${displayField(data.temperature)}
 Dewpoint: ${displayField(data.dewpoint)}
-Transition Level: ${displayField(data.transition)}`
+Transition Level: ${displayField(data.transition)}
+Remarks: ${displayField(data.remarks)}`
 }
 
 // Main parser pipeline: normalize text -> split into words -> extract known ATIS fields -> return structured data
@@ -93,7 +94,8 @@ function parseAtis(text) {
             atisIdentifier = possibleAtisIdentifier
         }
     }
-
+    const observationTimeField = extractAfter(words, "observation", 1, 2)
+    const runwayField = extractBetween(words, "runway", "wind", false)
     const windField = extractBetween(words, "wind", "knots")
     const visibilityField =
         extractBetween(words, "visibility", "meters") ||
@@ -102,13 +104,12 @@ function parseAtis(text) {
     const skyField =
         extractBetween(words, "clouds", "feet") ||
         extractBetween(words, "cloud", "feet")
-    const runwayField = extractBetween(words, "runway", "wind", false)
 
     const pressureField = extractAfter(words, "qnh") || extractAfter(words, "altimeter")
     const temperatureField = extractAfter(words, "temperature")
     const dewpointField = extractAfter(words, "dewpoint") || extractAfterPhrase(words, "dew point")
-    const observationTimeField = extractAfter(words, "observation", 1, 2)
     const transitionLevelField = extractAfterPhrase(words, "transition level")
+    const remarksField = extractAfter(words, "remarks", 1, 5)
 
     return {
         airport: airportName,
@@ -121,7 +122,8 @@ function parseAtis(text) {
         pressure: pressureField,
         temperature: temperatureField,
         dewpoint: dewpointField,
-        transition: transitionLevelField
+        transition: transitionLevelField,
+        remarks: remarksField
     }
 }
 
