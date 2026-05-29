@@ -1,137 +1,71 @@
 # Aviation Communications Assistant
 
-Aviation Communications Assistant is a web-based MVP that converts ATIS-style aviation communication text into a pilot-readable briefing card and structured JSON.
+Aviation Communications Assistant is a browser-based MVP that converts ATIS-style aviation communication text into a readable briefing card and structured JSON.
 
-I built this as the Create step of my TKS Focus Project. The goal was to explore how dense aviation communication can be transformed into clearer, structured information using a deterministic parser.
+It was built as the Create step of my TKS Focus Project to explore how dense aviation information can be parsed into clearer, reusable data using deterministic rules.
 
-This is not a certified aviation system. It is an educational prototype focused on proving the core pipeline:
+This is an educational prototype, not a certified aviation tool.
 
-```txt
-raw aviation communication text
-→ normalized text
-→ tokenized words
-→ deterministic field extraction
-→ readable briefing card
-→ structured JSON
-```
-
-## Project goal
-
-ATIS messages are information-dense and repetitive. They usually contain important operational details such as the airport or facility name, ATIS identifier, runway information, wind, visibility, pressure, temperature, dew point, transition level, and other remarks.
-
-The goal of this MVP is to test whether a simple browser-based tool can take a raw ATIS-style transcript and convert it into something easier to read, reuse, and inspect.
-
-The focus is not full natural-language understanding yet. The focus is a working deterministic parser that extracts predictable aviation fields from predictable transcript patterns.
-
-## Current app
+## What it does
 
 The app lets a user:
 
-- paste or type an ATIS-style transcript manually
-- choose from sample ATIS transcripts
+- paste an ATIS-style transcript
+- choose from sample transcripts
 - parse the transcript into a briefing card
-- view the raw structured JSON output
+- view the extracted data as JSON
 - copy the JSON output
-- see known limitations directly in the interface
+- export the briefing card as a `.txt` file
 
-## Current features
+## Parser output
 
-- Manual transcript input
-- Sample transcript buttons
-- Textarea auto-resizing
-- Empty-input guard
-- Deterministic JavaScript parser
-- Airport or facility name extraction
-- ATIS identifier extraction with validation
-- Runway parsing
-- Wind parsing
-- Visibility parsing
-- QNH parsing
-- Temperature parsing
-- Dewpoint parsing
-- Transition level parsing
-- Human-readable briefing card
-- Raw JSON output
-- Copy JSON button
-- Copy status feedback
-- Known limitations section
-- Dark technical/editorial UI style
-
-## Current parser fields
-
-The current parser returns this structure:
+The parser currently extracts:
 
 ```js
 {
   airport: "",
   atisIdentifier: "",
+  observationTime: "",
   runway: "",
   wind: "",
   visibility: "",
-  qnh: "",
+  sky: "",
+  pressure: "",
   temperature: "",
   dewpoint: "",
-  transition: ""
+  transition: "",
+  remarks: ""
 }
-```
+````
 
-Missing fields return an empty string in the raw JSON output.
+Missing fields return an empty string in JSON and appear as `not detected` in the briefing card.
 
-In the briefing card, missing fields are displayed as:
+## How it works
 
-```txt
-not detected
-```
+The parser is deterministic. It does not use AI, speech recognition, or a backend.
 
-This keeps a separation between:
+Basic pipeline:
 
 ```txt
-raw parser data = actual extracted values
-briefing card = human-readable presentation
+raw transcript
+→ normalize text
+→ split into words
+→ search for anchor words
+→ extract known fields
+→ render briefing card and JSON
 ```
 
-## How the parser works
-
-The parser uses deterministic rules, not AI.
-
-It follows this basic process:
+Example:
 
 ```txt
-1. normalize the text
-2. remove basic punctuation
-3. split the text into words
-4. look for anchor words
-5. extract words between known boundaries
-6. return a structured JavaScript object
-7. render the object as a briefing card and JSON
+Wind 310 degrees at 12 knots
 ```
 
-Current normalization:
-
-```js
-const normalizedText = text
-    .toLowerCase()
-    .replaceAll(".", "")
-    .replaceAll(",", "")
-```
-
-Current tokenization:
-
-```js
-const words = normalizedText.trim().split(/\s+/)
-```
-
-For example, in this transcript fragment:
+The parser uses:
 
 ```txt
-Wind 310 degrees at 12 knots.
-```
-
-the parser uses:
-
-```txt
-"wind" = start anchor
-"knots" = end boundary
+"wind" as the start anchor
+"knots" as the end boundary
 ```
 
 and extracts:
@@ -140,335 +74,121 @@ and extracts:
 310 degrees at 12 knots
 ```
 
-For single-value fields, it uses an anchor word and an offset.
-
-For example:
+For simpler fields, it extracts words after an anchor:
 
 ```txt
-QNH 1013
+QNH 1013 → 1013
+temperature 22 → 22
+observation 1150 zulu → 1150 zulu
 ```
 
-uses:
+## Current features
 
-```txt
-"qnh" = anchor
-next word = value
-```
-
-and extracts:
-
-```txt
-1013
-```
-
-## Main helper functions
-
-The parser currently uses these main helper functions:
-
-### `extractBetween()`
-
-Extracts a field between a start anchor and an end boundary.
-
-Used for fields like:
-
-- wind
-- visibility
-- runway
-
-### `extractAfter()`
-
-Extracts a value after an anchor word.
-
-Used for fields like:
-
-- QNH
-- temperature
-- dewpoint
-- transition level
-
-### `displayField()`
-
-Controls how missing fields appear in the briefing card.
-
-Raw JSON keeps missing values as empty strings, while the briefing card shows `not detected`.
-
-### `formatBriefing()`
-
-Turns the parsed object into a human-readable briefing card.
-
-### `parseAtis()`
-
-Runs the main parser pipeline.
-
-## UI architecture
-
-The app is split into four files:
-
-```txt
-index.html
-style.css
-sampleAtis.js
-script.js
-```
-
-### `index.html`
-
-Defines the page structure:
-
-- title
-- project explanation
-- raw input textarea
-- sample transcript buttons container
-- Parse button
-- briefing card output
-- raw JSON output
-- Copy JSON button
-- known limitations section
-
-### `style.css`
-
-Defines the visual design system.
-
-The current design direction is:
-
-```txt
-technical editorial notebook
-+ public engineering log
-+ systems research journal
-```
-
-The visual style intentionally avoids:
-
-- startup SaaS aesthetic
-- cyberpunk AI look
-- productivity influencer style
-- hacker cosplay
-- minimal luxury branding
-
-### `sampleAtis.js`
-
-Stores sample transcript data as labeled objects.
-
-Example structure:
-
-```js
-{
-    label: "Clean Dubai ATIS",
-    text: `Dubai Information Bravo. Runway 30 left. Wind 310 degrees at 12 knots. Visibility 5000 meters. QNH 1013. Temperature 22. Dewpoint 10. Transition level 60.`
-}
-```
-
-This allows the app to dynamically generate sample buttons.
-
-### `script.js`
-
-Contains:
-
-- DOM references
-- parser helper functions
-- the main `parseAtis()` function
-- briefing formatting
-- textarea auto-resizing
-- Parse button behavior
-- Copy JSON behavior
-- dynamic sample button generation
+* Deterministic JavaScript parser
+* Airport / facility name extraction
+* ATIS identifier validation
+* Observation time parsing
+* Runway parsing
+* Wind parsing
+* Visibility parsing in meters, kilometers, and miles
+* Basic sky / cloud layer parsing
+* Pressure parsing from QNH or altimeter
+* Temperature parsing
+* Dew point parsing for both `dewpoint` and `dew point`
+* Transition level parsing
+* Basic remarks parsing
+* Briefing card output
+* Raw JSON output
+* Copy JSON button
+* Export briefing as `.txt`
+* Sample transcript buttons
+* Empty-input guard
+* Auto-resizing textarea
+* Known limitations shown in the interface
 
 ## Tech stack
 
-- HTML
-- CSS
-- JavaScript
+* HTML
+* CSS
+* JavaScript
 
-No framework is currently used.
+No framework.
+No backend.
+No AI model.
 
-No backend is currently used.
+## Project structure
 
-No AI model is currently used.
-
-The project is intentionally simple so the parser logic remains visible and explainable.
-
-## Current robustness handling
-
-The app currently handles:
-
-- mixed capitalization
-- periods and commas
-- multiple spaces
-- line breaks
-- missing fields
-- missing `information` keyword
-- invalid ATIS identifiers
-- missing values after anchors
-- empty input
-- sample transcript selection
-- textarea resizing
-- JSON copying
-
-Examples of tested cases:
-
-- clean Dubai ATIS
-- mixed capitalization
-- line breaks and spacing
-- runway `30L` format
-- complex runway wording
-- missing `information` keyword
-- invalid ATIS identifier
-- `alfa` spelling
-- missing QNH value
+```txt
+index.html      page structure
+style.css       visual styling
+sampleAtis.js   sample transcript data
+script.js       parser logic and UI behavior
+README.md       project documentation
+```
 
 ## Known limitations
 
-This is a minimum viable prototype, not a full aviation NLP system.
+This is a rule-based MVP, so it only works reliably on predictable ATIS-style transcript patterns.
 
-Known limitations:
+Current limitations:
 
-- The parser expects predictable ATIS-style transcript patterns.
-- It does not currently handle `wind calm`.
-- It expects wind reports to end with `knots`.
-- Complex runway phrasing may overcapture.
-- It currently handles `dewpoint` better than `dew point`.
-- It does not yet fully support visibility in miles or kilometers.
-- It does not yet parse observation time.
-- It does not yet parse sky condition or cloud layers.
-- It does not yet extract advisories, cautions, or remarks into separate fields.
-- It does not yet separate landing and departing runways into different fields.
-- It is not designed for real operational aviation use.
-
-## Example limitation
-
-For a transcript like:
-
-```txt
-Dubai information echo landing runway 30 left departing runway 30 right wind 310 degrees at 12 knots
-```
-
-the current parser may return:
-
-```txt
-Runway: 30 left departing runway 30 right
-```
-
-This happens because the parser currently finds the first `runway` anchor and captures everything until `wind`.
-
-A future version should separate this into:
-
-```txt
-Landing runway: 30 left
-Departing runway: 30 right
-```
+* Not intended for operational aviation use
+* Does not handle `wind calm`
+* Wind parsing currently expects a `knots` boundary
+* Complex runway phrasing may overcapture
+* Landing and departing runways are not separated yet
+* Observation time parsing expects a simple pattern like `observation 1150 zulu`
+* Pressure parsing does not preserve whether the source was QNH or altimeter
+* Visibility is parsed but not converted between units
+* Sky parsing only handles simple cloud patterns ending in `feet`
+* Remarks parsing currently captures a fixed number of words after `remarks`
 
 ## Why deterministic parsing?
 
-This MVP uses deterministic parsing because ATIS messages are structured and repetitive.
+ATIS messages are structured and repetitive, so a deterministic parser is a good MVP approach.
 
-Advantages:
+Benefits:
 
-- simple to understand
-- easy to debug
-- no API key required
-- no backend required
-- explainable extraction logic
-- predictable behavior for known transcript patterns
+* simple to understand
+* easy to debug
+* no API key required
+* explainable behavior
+* predictable output for known patterns
 
 Tradeoff:
 
-- less flexible than a full natural-language parser
-- weaker on unusual phrasing
-- requires manually adding rules for new patterns
+* less flexible than natural-language parsing
+* needs new rules for new transcript patterns
 
-## What I learned
+## Future improvements
 
-This project was mainly about building a real parsing pipeline, not just a webpage.
+Possible next steps:
 
-Key concepts learned:
+* handle `wind calm`
+* improve runway parsing
+* separate landing and departing runways
+* preserve pressure type and unit
+* support more visibility formats
+* improve remarks extraction
+* add copy briefing
+* eventually explore audio transcription
 
-- DOM interaction
-- event listeners
-- textarea input handling
-- output rendering
-- JavaScript objects
-- JSON formatting
-- `JSON.stringify()`
-- string normalization
-- tokenization
-- `split()`
-- `indexOf()`
-- `slice()`
-- `join()`
-- anchor-word parsing
-- defensive parsing
-- helper function abstraction
-- separating data from presentation
-- building sample-driven tests
-- UI polish for a demo-ready MVP
+Audio transcription is intentionally out of scope for the current version because it would require speech-to-text handling and more reliability work.
 
-The biggest architectural shift was moving from hardcoded positions to rule-based extraction.
+## Status
 
-Instead of relying on fixed word indexes, the parser searches for meaningful anchor words such as:
+Stable MVP complete.
+
+The current version demonstrates the full text-based pipeline:
 
 ```txt
-information
-runway
-wind
-visibility
-qnh
-temperature
-dewpoint
-transition
-```
-
-This made the parser more flexible and easier to expand.
-
-## Next planned improvements
-
-The next development phase is targeted parser expansion, not a full rewrite.
-
-Planned near-term improvements:
-
-- support both `dewpoint` and `dew point`
-- parse observation time in UTC
-- support altimeter settings as an alternative to QNH
-- support visibility in meters, kilometers, and miles
-- improve runway parsing
-- separate landing and departing runway fields when clearly stated
-- parse sky condition and cloud layers
-- extract remarks, advisories, and cautions
-- export the briefing card as a `.txt` file
-- possibly add Copy Briefing
-
-Possible future extension:
-
-- audio upload and transcription
-
-Audio transcription is not part of the current MVP because it would likely require a speech-to-text system, external API, backend handling, or additional reliability work. It is better treated as a later extension after the text parser is stronger.
-
-## Project status
-
-Current status:
-
-```txt
-Stable MVP complete
-```
-
-Next phase:
-
-```txt
-Targeted parser expansion and export features
-```
-
-Immediate next steps:
-
-```txt
-1. Push current MVP to GitHub as a stable checkpoint
-2. Add support for both "dewpoint" and "dew point"
-3. Expand common ATIS field coverage
-4. Add export briefing as .txt
-5. Deploy the app
-6. Record final demo video
+raw aviation transcript
+→ parsed fields
+→ readable briefing
+→ structured JSON
+→ exportable output
 ```
 
 ## Disclaimer
 
-This project is an educational prototype.
-
-It is not certified, validated, or yet intended for operational aviation use.
+This project is an educational prototype. It is not certified, validated, or intended for real aviation operations.
