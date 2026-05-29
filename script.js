@@ -60,6 +60,7 @@ Observation Time: ${displayField(data.observationTime)}
 Runway: ${displayField(data.runway)}
 Wind: ${displayField(data.wind)}
 Visibility: ${displayField(data.visibility)}
+Sky: ${displayField(data.sky)}
 Pressure: ${displayField(data.pressure)}
 Temperature: ${displayField(data.temperature)}
 Dewpoint: ${displayField(data.dewpoint)}
@@ -98,6 +99,9 @@ function parseAtis(text) {
         extractBetween(words, "visibility", "meters") ||
         extractBetween(words, "visibility", "kilometers") ||
         extractBetween(words, "visibility", "miles")
+    const skyField =
+        extractBetween(words, "clouds", "feet") ||
+        extractBetween(words, "cloud", "feet")
     const runwayField = extractBetween(words, "runway", "wind", false)
 
     const pressureField = extractAfter(words, "qnh") || extractAfter(words, "altimeter")
@@ -113,6 +117,7 @@ function parseAtis(text) {
         runway: runwayField,
         wind: windField,
         visibility: visibilityField,
+        sky: skyField,
         pressure: pressureField,
         temperature: temperatureField,
         dewpoint: dewpointField,

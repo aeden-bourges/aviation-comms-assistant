@@ -62,4 +62,8 @@ Transition level 60`
         label: "Visibility miles",
         text: `Dubai information bravo observation 1150 zulu runway 30 left wind 310 degrees at 12 knots visibility 3 miles altimeter 2992 temperature 22 dew point 10 transition level 60`
     },
+    {
+        label: "Cloud layer",
+        text: `Dubai information bravo observation 1150 zulu runway 30 left wind 310 degrees at 12 knots visibility 5000 meters clouds scattered 2500 feet qnh 1013 temperature 22 dew point 10 transition level 60`
+    },
 ]
