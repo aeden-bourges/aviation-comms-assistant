@@ -46,4 +46,20 @@ Transition level 60`
         label: "Dew point two words",
         text: `Dubai information bravo runway 30 left wind 310 degrees at 12 knots visibility 5000 meters qnh 1013 temperature 22 dew point 10 transition level 60`
     },
+    {
+        label: "Observation time",
+        text: `Dubai information bravo observation 1150 zulu runway 30 left wind 310 degrees at 12 knots visibility 5000 meters qnh 1013 temperature 22 dew point 10 transition level 60`
+    },
+    {
+        label: "Altimeter pressure",
+        text: `Dubai information bravo observation 1150 zulu runway 30 left wind 310 degrees at 12 knots visibility 5000 meters altimeter 2992 temperature 22 dew point 10 transition level 60`
+    },
+    {
+        label: "Visibility kilometers",
+        text: `Dubai information bravo observation 1150 zulu runway 30 left wind 310 degrees at 12 knots visibility 5 kilometers qnh 1013 temperature 22 dew point 10 transition level 60`
+    },
+    {
+        label: "Visibility miles",
+        text: `Dubai information bravo observation 1150 zulu runway 30 left wind 310 degrees at 12 knots visibility 3 miles altimeter 2992 temperature 22 dew point 10 transition level 60`
+    },
 ]

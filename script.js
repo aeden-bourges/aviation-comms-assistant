@@ -5,6 +5,8 @@ const jsonOutput = document.getElementById("json-output")
 const sampleButtonsContainer = document.getElementById("sample-buttons")
 const copyJsonButton = document.getElementById("copy-json-btn")
 const copyStatus = document.getElementById("copy-status")
+const exportBriefingButton = document.getElementById("export-briefing-btn")
+const exportStatus = document.getElementById("export-status")
 
 function extractBetween(words, startWord, endWord, includeEnd = true) {
     const startIndex = words.indexOf(startWord)
@@ -20,13 +22,17 @@ function extractBetween(words, startWord, endWord, includeEnd = true) {
 }
 
 // Known limitation: "calm" wind reports are not currently parsed because the MVP wind parser expects a “knots” end marker.
-function extractAfter(words, anchorWord, offset = 1) {
+function extractAfter(words, anchorWord, offset = 1, numberOfWords = 1) {
     const anchorIndex = words.indexOf(anchorWord)
     if (anchorIndex === -1 ) {
         return ""
     }
 
-    return words[anchorIndex + offset] || ""
+    const valueStart = anchorIndex + offset
+    const valueEnd = valueStart + numberOfWords
+    const valueWords = words.slice(valueStart, valueEnd)
+
+    return valueWords.join(" ")
 }
 
 function extractAfterPhrase(words, anchorPhrase, offset = 1) {
@@ -50,10 +56,11 @@ function displayField(value) {
 function formatBriefing(data) {
     return `Airport: ${displayField(data.airport)}
 ATIS: ${displayField(data.atisIdentifier)}
+Observation Time: ${displayField(data.observationTime)}
 Runway: ${displayField(data.runway)}
 Wind: ${displayField(data.wind)}
 Visibility: ${displayField(data.visibility)}
-QNH: ${displayField(data.qnh)}
+Pressure: ${displayField(data.pressure)}
 Temperature: ${displayField(data.temperature)}
 Dewpoint: ${displayField(data.dewpoint)}
 Transition Level: ${displayField(data.transition)}`
@@ -87,21 +94,26 @@ function parseAtis(text) {
     }
 
     const windField = extractBetween(words, "wind", "knots")
-    const visibilityField = extractBetween(words, "visibility", "meters")
+    const visibilityField =
+        extractBetween(words, "visibility", "meters") ||
+        extractBetween(words, "visibility", "kilometers") ||
+        extractBetween(words, "visibility", "miles")
     const runwayField = extractBetween(words, "runway", "wind", false)
 
-    const qnhField = extractAfter(words, "qnh")
+    const pressureField = extractAfter(words, "qnh") || extractAfter(words, "altimeter")
     const temperatureField = extractAfter(words, "temperature")
     const dewpointField = extractAfter(words, "dewpoint") || extractAfterPhrase(words, "dew point")
+    const observationTimeField = extractAfter(words, "observation", 1, 2)
     const transitionLevelField = extractAfterPhrase(words, "transition level")
 
     return {
         airport: airportName,
         atisIdentifier: atisIdentifier,
+        observationTime: observationTimeField,
         runway: runwayField,
         wind: windField,
         visibility: visibilityField,
-        qnh: qnhField,
+        pressure: pressureField,
         temperature: temperatureField,
         dewpoint: dewpointField,
         transition: transitionLevelField
@@ -117,11 +129,13 @@ function autoResizeTextarea() {
 rawAtis.addEventListener("input", function() {
     autoResizeTextarea()
     copyStatus.textContent = ""
+    exportStatus.textContent = ""
 })
 
 parseButton.addEventListener("click", function() {
     const inputText = rawAtis.value
     copyStatus.textContent = ""
+    exportStatus.textContent = ""
     if (inputText.trim() === "") {
         briefingOutput.textContent = "Paste or choose an ATIS transcript first."
         jsonOutput.textContent = ""
@@ -144,6 +158,26 @@ copyJsonButton.addEventListener("click", function() {
     copyStatus.textContent = "JSON copied."
 })
 
+exportBriefingButton.addEventListener("click", function() {
+    const briefingText = briefingOutput.textContent
+
+    if (briefingText.trim() === "" || briefingText === "Paste or choose an ATIS transcript first.") {
+        exportStatus.textContent = "No briefing to export yet."
+        return
+    }
+
+    const file = new Blob([briefingText], { type: "text/plain" })
+    const url = URL.createObjectURL(file)
+
+    const link = document.createElement("a")
+    link.href = url
+    link.download = "atis-briefing.txt"
+    link.click()
+
+    URL.revokeObjectURL(url)
+    exportStatus.textContent = "Briefing exported."
+})
+
 // One button per sample transcript
 for (const sample of sampleAtis) {
     const button = document.createElement("button")
@@ -152,6 +186,7 @@ for (const sample of sampleAtis) {
         rawAtis.value = sample.text
         autoResizeTextarea()
         copyStatus.textContent = ""
+        exportStatus.textContent = ""
     })
 
     sampleButtonsContainer.appendChild(button)

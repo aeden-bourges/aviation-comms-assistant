@@ -74,7 +74,7 @@ button:hover {
     color: var(--background-primary);
 }
 
-#parse-btn, #copy-json-btn {
+#parse-btn, #copy-json-btn, #export-briefing-btn {
     display: block;
     margin-top: 15px;
     font-weight: bold;
