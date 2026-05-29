@@ -1,0 +1,96 @@
+:root {
+    --background-primary: #1A1A1A;
+    --background-secondary: #202020;
+    --text-primary: #F3F0EA;
+    --text-secondary: #A6A6A6;
+    --panel: #E7E2D8;
+    --panel-text: #151515;
+    --accent: #8B9A89;
+    --border: #8B9A89;
+}
+
+body {
+    font-family: Inter, sans-serif;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+    line-height: 1.5;
+    background: var(--background-primary);
+    color: var(--text-primary);
+}
+
+h1 {
+    margin-bottom: 5px;
+    letter-spacing: -0.03em;
+}
+
+h2 {
+    margin-top: 28px;
+    color: var(--text-primary);
+    border-left: 4px solid var(--accent);
+    padding-left: 10px;
+}
+
+p {
+    color: var(--text-secondary);
+}
+
+.project-description {
+    max-width: 820px;
+    color: var(--text-secondary);
+    font-size: 15px;
+    line-height: 1.7;
+    border-left: 1px dashed var(--border);
+    padding-left: 12px;
+    margin-top: 20px;
+}
+
+textarea {
+    width: 100%;
+    min-height: 90px;
+    padding: 12px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 14px;
+    box-sizing: border-box;
+    background: var(--panel);
+    color: var(--panel-text);
+    border: 1px dashed var(--border);
+    overflow: hidden;
+    resize: none;
+}
+
+button {
+    margin: 6px 6px 6px 0;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: "IBM Plex Mono", monospace;
+    background: var(--background-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+button:hover {
+    background: var(--accent);
+    color: var(--background-primary);
+}
+
+#parse-btn, #copy-json-btn {
+    display: block;
+    margin-top: 15px;
+    font-weight: bold;
+    background: var(--accent);
+    color: var(--background-primary);
+    border: 1px solid var(--accent);
+    padding: 10px 18px;
+}
+
+#briefing-output, #json-output {
+    border: 1px dashed var(--border);
+    padding: 12px;
+    min-height: 90px;
+    white-space: pre-wrap;
+    background: var(--panel);
+    color: var(--panel-text);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 14px;
+}
