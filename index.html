@@ -8,18 +8,22 @@
     </head>
     <body>
         <h1>Aviation Communications Assistant</h1>
-        <p>Get a parsed ATIS transcript</p>
+        <p>Decode and structure ATIS-style aviation communication</p>
+
         <p class="project-description">
-            This tool takes raw ATIS-style aviation communication text and converts it into a pilot-readable briefing card plus structured JSON. It uses deterministic parsing rules rather than AI, so the goal is not full natural-language understanding, but reliable extraction of key aviation fields from predictable transcript patterns.
+            This tool takes ATIS-style aviation communication text and turns it into decoded notes, a readable briefing card, and structured JSON. It uses deterministic parsing rules rather than AI, so the goal is explainable extraction and decoding, not full aviation language understanding.
         </p>
 
         <h2>Raw Input</h2>
-        <textarea id="user-input" placeholder="Paste raw ATIS transcript"></textarea>
+        <textarea id="user-input" placeholder="Paste an ATIS transcript or abbreviated ATIS note"></textarea>
 
         <h2>Sample Transcripts</h2>
         <div id="sample-buttons"></div>
     
         <button id="parse-btn">Parse</button>
+
+        <h2>Decoded Notes</h2>
+        <pre id="decoded-output"></pre>
 
         <h2>Briefing Card</h2>
         <button id="export-briefing-btn">Export .txt</button>
@@ -33,13 +37,11 @@
 
         <h2>Known Limitations</h2>
         <ul>
-            <li>This parser expects predictable ATIS-style transcript patterns.</li>
-            <li>This does not currently handle “winds calm.”</li>
-            <li>Complex runway phrasing may overcapture.</li>
-            <li>Observation time parsing expects a simple “observation 1150 zulu” pattern.</li>
-            <li>Pressure parsing does not yet preserve whether the source was QNH or altimeter.</li>
-            <li>Sky and remarks parsing are basic and pattern-dependent.</li>
-            <li>This is a deterministic MVP parser, not a full aviation NLP system.</li>
+            <li>This is an educational prototype, not an operational aviation tool.</li>
+            <li>The parser works best on predictable ATIS-style patterns.</li>
+            <li>The decoder only supports a limited set of common abbreviations and notes.</li>
+            <li>Complex runway, weather, and instruction phrasing may be missed or overcaptured.</li>
+            <li>It does not fully decode all ICAO, METAR, or ATIS formats.</li>
         </ul>
 
         <script src="sampleAtis.js"></script>
