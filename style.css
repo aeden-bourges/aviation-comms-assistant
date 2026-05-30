@@ -79,6 +79,7 @@ button:hover {
 }
 
 #parse-btn,
+#copy-decoded-btn,
 #copy-json-btn,
 #export-briefing-btn {
     display: block;
@@ -90,6 +91,7 @@ button:hover {
     padding: 10px 18px;
 }
 
+#decoded-status,
 #copy-status,
 #export-status {
     font-size: 14px;

@@ -64,5 +64,21 @@ RECEIVING INFO K`
     {
         label: "Missing fields",
         text: `Dubai runway 30 left wind 310 degrees at 12 knots qnh 1013`
+    },
+    {
+        label: "Compact ATIS notes",
+        text: `SBSJ ARR ATIS G
+    1402Z EXPECT ILS T RWY16
+    RSCD 14:00Z BRAKING CONDITIONS NOT REPORTED
+    MUM TYPE OF DEPOSIT NOT REPORTED
+    ALS INOP
+    TRL FL085
+    WIND 240/02KT
+    VIS 6000M
+    CLD SCT040 OVC070
+    T20 / DP18
+    QNH 1021HPA
+    BIRDS
+    END OF ATIS G`
     }
 ]

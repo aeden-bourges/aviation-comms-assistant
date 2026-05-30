@@ -8,6 +8,8 @@ const copyJsonButton = document.getElementById("copy-json-btn")
 const copyStatus = document.getElementById("copy-status")
 const exportBriefingButton = document.getElementById("export-briefing-btn")
 const exportStatus = document.getElementById("export-status")
+const copyDecodedButton = document.getElementById("copy-decoded-btn")
+const decodedStatus = document.getElementById("decoded-status")
 
 function extractBetween(words, startWord, endWord, includeEnd = true) {
     const startIndex = words.indexOf(startWord)
@@ -68,155 +70,318 @@ Transition Level: ${displayField(data.transition)}
 Remarks: ${displayField(data.remarks)}`
 }
 
-function decodeAtisNotes(text) {
-    const normalizedText = text
-        .toUpperCase()
-        .replaceAll(",", "")
+function expandCloudLayer(layer) {
+    return layer
+        .replaceAll("FEW", "few clouds ")
+        .replaceAll("SCT", "scattered clouds ")
+        .replaceAll("BKN", "broken clouds ")
+        .replaceAll("OVC", "overcast clouds ")
+        .replaceAll("CB", "cumulonimbus")
+        .replace(/\s+/g, " ")
+        .trim()
+}
 
-    const lines = normalizedText
+function decodeAtisNotes(text) {
+    const airportNames = {
+        OMAA: "Abu Dhabi International Airport",
+        OMDB: "Dubai International Airport",
+        SBSJ: "São José dos Campos Airport",
+        SBBR: "Brasília International Airport",
+        MEM: "Memphis International Airport",
+        VVTS: "Tan Son Nhat International Airport"
+    }
+
+    const rawText = text
+        .toUpperCase()
+        .replaceAll(",", " ")
+
+    const lines = rawText
         .split(/\n+/)
         .map(function(line) {
-            return line.trim()
+            return line.trim().replace(/\s+/g, " ")
         })
         .filter(function(line) {
             return line !== ""
         })
 
+    const allText = lines.join(" ")
     const decodedNotes = []
 
-    for (const line of lines) {
-        if (line.includes("ARR ATIS")) {
-            decodedNotes.push("Arrival ATIS.")
+    function addNote(note) {
+        if (!decodedNotes.includes(note)) {
+            decodedNotes.push(note)
+        }
+    }
+
+    for (const airportCode in airportNames) {
+        if (allText.includes(airportCode)) {
+            addNote(`Airport: ${airportNames[airportCode]} (${airportCode}).`)
+        }
+    }
+
+    if (allText.includes("ARR ATIS")) {
+        addNote("Arrival ATIS.")
+    }
+
+    if (allText.includes("DEP ATIS")) {
+        addNote("Departure ATIS.")
+    }
+
+    let match = allText.match(/\bATIS\s+([A-Z])\b/)
+    if (match && !allText.includes("END OF ATIS " + match[1])) {
+        addNote(`ATIS information ${match[1]}.`)
+    }
+
+    match = allText.match(/\bINFO\s+([A-Z])\b/)
+    if (match) {
+        addNote(`Information ${match[1]} received or in use.`)
+    }
+
+    match = allText.match(/\bEND OF ATIS\s+([A-Z])\b/)
+    if (match) {
+        addNote(`End of ATIS information ${match[1]}.`)
+    }
+
+    for (const timeMatch of allText.matchAll(/\b(\d{4}Z)\b/g)) {
+        addNote(`Observation time: ${timeMatch[1]}.`)
+    }
+
+    if (allText.includes("ILS APP") || allText.includes("ILS APCH")) {
+        addNote("ILS approach in use.")
+    }
+
+    match = allText.match(/\bEXPECT\s+ILS\s+([A-Z])?\s*RWY\s?(\d{2}[LRC]?)\b/)
+    if (match) {
+        const approachType = match[1] ? ` ${match[1]}` : ""
+        addNote(`Expect ILS${approachType} approach to runway ${match[2]}.`)
+    }
+
+    for (const ilsRunwayMatch of allText.matchAll(/\bILS\s+APCH\s+IN\s+USE\s+(?:RY|RWY)\s+([\dA-Z\s]+)/g)) {
+        addNote(`ILS approach runway information: ${ilsRunwayMatch[1].trim()}.`)
+    }
+
+    for (const ldgMatch of allText.matchAll(/\bLDG\s+(?:RWY\s*)?(\d{2}[LRC]?)\b/g)) {
+        addNote(`Landing runway: ${ldgMatch[1]}.`)
+    }
+
+    for (const depRunwayMatch of allText.matchAll(/\bDEP\s+RWY\s+(\d{2}[LRC]?)\b/g)) {
+        addNote(`Departure runway: ${depRunwayMatch[1]}.`)
+    }
+
+    for (const takeoffMatch of allText.matchAll(/\bTAKEOFF\s+RWY\s+(\d{2}[LRC]?)\b/g)) {
+        addNote(`Takeoff runway: ${takeoffMatch[1]}.`)
+    }
+
+    for (const runwayMatch of allText.matchAll(/\bRWY\s+(\d{1,2}[LRC]?)\b/g)) {
+        addNote(`Runway reference: ${runwayMatch[1]}.`)
+    }
+
+    for (const windMatch of allText.matchAll(/\bWIND(?:\s+RWY\s+(\d{2}[LRC]?))?(?:\s+TDZ)?\s+(\d{3})(?:\/|\s+)(\d{1,2})\s*KT\b/g)) {
+        const runwayText = windMatch[1] ? ` on runway ${windMatch[1]}` : ""
+        addNote(`Wind${runwayText}: from ${windMatch[2]} degrees at ${windMatch[3]} knots.`)
+    }
+
+    match = allText.match(/\bWIND DIR\s+(\d{3})\s+V\s+(\d{3})\b/)
+    if (match) {
+        addNote(`Wind direction variable between ${match[1]} and ${match[2]} degrees.`)
+    }
+
+    if (allText.includes("CAVOK")) {
+        addNote("CAVOK: ceiling and visibility OK.")
+    }
+
+    for (const visMatch of allText.matchAll(/\bVIS(?:\s+RWY\s+(\d{2}[LRC]?))?(?:\s+TDZ)?\s+(\d+)\s*(M|KM|METERS|KILOMETERS|MILES)\b/g)) {
+        const runwayText = visMatch[1] ? ` on runway ${visMatch[1]}` : ""
+        let unit = visMatch[3]
+
+        if (unit === "M") {
+            unit = "meters"
+        } else if (unit === "KM") {
+            unit = "kilometers"
+        } else {
+            unit = unit.toLowerCase()
         }
 
-        if (line.includes("DEP ATIS")) {
-            decodedNotes.push("Departure ATIS.")
-        }
+        addNote(`Visibility${runwayText}: ${visMatch[2]} ${unit}.`)
+    }
 
-        let match = line.match(/\bATIS\s+([A-Z])\b/)
-        if (match) {
-            decodedNotes.push(`ATIS information ${match[1]}.`)
-        }
+    match = allText.match(/\bVISIBILITY\s+(\d+)\s+(METERS|KILOMETERS|MILES)\b/)
+    if (match) {
+        addNote(`Visibility: ${match[1]} ${match[2].toLowerCase()}.`)
+    }
 
-        match = line.match(/\bINFO\s+([A-Z])\b/)
-        if (match) {
-            decodedNotes.push(`Information ${match[1]} received or in use.`)
-        }
+    match = allText.match(/\b(\d{1,2})SM\b/)
+    if (match) {
+        addNote(`Visibility: ${match[1]} statute miles.`)
+    }
 
-        match = line.match(/\b(\d{4}Z)\b/)
-        if (match) {
-            decodedNotes.push(`Observation time: ${match[1]}.`)
-        }
+    for (const cloudMatch of allText.matchAll(/\bCLD(?:\s+RWY\s+\d{2}[LRC]?)?\s+([^\.]+)/g)) {
+        const cloudText = expandCloudLayer(cloudMatch[1].trim())
+        addNote(`Clouds: ${cloudText}.`)
+    }
 
-        if (line.includes("ILS APP")) {
-            decodedNotes.push("ILS approach in use.")
-        }
+    const compactCloudMatches = [...allText.matchAll(/\b(FEW|SCT|BKN|OVC)\d{3}\b/g)]
+    if (compactCloudMatches.length > 0 && !allText.includes("CLD")) {
+        const layers = compactCloudMatches.map(function(layerMatch) {
+            return layerMatch[0]
+        })
+        addNote(`Cloud layers: ${expandCloudLayer(layers.join(" "))}.`)
+    }
 
-        match = line.match(/\bLDG\s+(\d{2}[LRC]?)\b/)
-        if (match) {
-            decodedNotes.push(`Landing runway: ${match[1]}.`)
-        }
+    match = allText.match(/\bT\s*(-?\d{1,2})\b/)
+    if (match) {
+        addNote(`Temperature: ${match[1]}°C.`)
+    }
 
-        match = line.match(/\bDEP\s+RWY\s+(\d{2}[LRC]?)\b/)
-        if (match) {
-            decodedNotes.push(`Departure runway: ${match[1]}.`)
-        }
+    match = allText.match(/\bDP\s*(-?\d{1,2})\b/)
+    if (match) {
+        addNote(`Dew point: ${match[1]}°C.`)
+    }
 
-        match = line.match(/\bRWY\s+(\d{2}[LRC]?)\b/)
-        if (match && !line.includes("DEP RWY")) {
-            decodedNotes.push(`Runway reference: ${match[1]}.`)
-        }
+    match = allText.match(/\b(-?\d{2})\/(-?\d{2})\b/)
+    if (match) {
+        addNote(`Temperature: ${match[1]}°C.`)
+        addNote(`Dew point: ${match[2]}°C.`)
+    }
 
-        match = line.match(/\bWIND\s+(\d{3})\s+(\d{2})\s+KT\b/)
-        if (match) {
-            decodedNotes.push(`Wind from ${match[1]} degrees at ${match[2]} knots.`)
-        }
+    match = allText.match(/\bQNH\s*(\d{4})(?:HPA)?\b/)
+    if (match) {
+        addNote(`QNH: ${match[1]} hPa.`)
+    }
 
-        match = line.match(/\bWIND DIR\s+(\d{3})\s+V\s+(\d{3})\b/)
-        if (match) {
-            decodedNotes.push(`Wind direction variable between ${match[1]} and ${match[2]} degrees.`)
-        }
+    match = allText.match(/\bA(\d{4})\b/)
+    if (match) {
+        const altimeter = `${match[1].slice(0, 2)}.${match[1].slice(2)}`
+        addNote(`Altimeter setting: ${altimeter} inHg.`)
+    }
 
-        if (line.includes("CAVOK")) {
-            decodedNotes.push("CAVOK: ceiling and visibility OK.")
-        }
+    if (allText.includes("NOSIG")) {
+        addNote("No significant change expected.")
+    }
 
-        match = line.match(/\bVIS\s+(\d+)\s*(M|KM|METERS|KILOMETERS|MILES)\b/)
-        if (match) {
-            let unit = match[2]
+    match = allText.match(/\bTRL\s+FL?(\d{3})\b/)
+    if (match) {
+        addNote(`Transition level: flight level ${match[1]}.`)
+    }
 
-            if (unit === "M") {
-                unit = "meters"
-            } else if (unit === "KM") {
-                unit = "kilometers"
-            } else {
-                unit = unit.toLowerCase()
-            }
+    if (allText.includes("RSCD")) {
+        addNote("Runway surface condition information is included.")
+    }
 
-            decodedNotes.push(`Visibility: ${match[1]} ${unit}.`)
-        }
+    if (allText.includes("BRAKING CONDITIONS NOT REPORTED")) {
+        addNote("Runway braking conditions were not reported.")
+    }
 
-        match = line.match(/\bVISIBILITY\s+(\d+)\s+(METERS|KILOMETERS|MILES)\b/)
-        if (match) {
-            decodedNotes.push(`Visibility: ${match[1]} ${match[2].toLowerCase()}.`)
-        }
+    if (allText.includes("TYPE OF DEPOSIT NOT REPORTED")) {
+        addNote("Runway surface deposit type was not reported.")
+    }
 
-        match = line.match(/\bT\s+(-?\d{1,2})\b/)
-        if (match) {
-            decodedNotes.push(`Temperature: ${match[1]}°C.`)
-        }
+    match = allText.match(/\bRWYCC:\s*([0-9\/\s]+)\b/)
+    if (match) {
+        addNote(`Runway condition code: ${match[1].trim()}.`)
+    }
 
-        match = line.match(/\bDP\s+(-?\d{1,2})\b/)
-        if (match) {
-            decodedNotes.push(`Dew point: ${match[1]}°C.`)
-        }
+    match = allText.match(/\bRCR\s+([0-9\s]+)\b/)
+    if (match) {
+        addNote(`Runway condition report: ${match[1].trim()}.`)
+    }
 
-        match = line.match(/\bQNH\s+(\d{4})\b/)
-        if (match) {
-            decodedNotes.push(`QNH: ${match[1]} hPa.`)
-        }
+    if (allText.includes("ALS INOP")) {
+        addNote("Approach lighting system is inoperative.")
+    }
 
-        if (line.includes("NOSIG")) {
-            decodedNotes.push("No significant change expected.")
-        }
+    if (allText.includes("PAPI OTS")) {
+        addNote("PAPI is out of service.")
+    }
 
-        if (line.includes("APCH")) {
-            decodedNotes.push("APCH: approach.")
-        }
+    if (allText.includes("GS OTS")) {
+        addNote("Glide slope is out of service.")
+    }
 
-        match = line.match(/\bFREQ\s+(IS\s+)?([\d\s.]+)/)
-        if (match) {
-            const frequency = match[2].replace(/\s+/g, "")
-            decodedNotes.push(`Frequency: ${frequency}.`)
-        }
+    if (allText.includes("ILS RWY") && allText.includes("OTS")) {
+        addNote("An ILS runway system is out of service.")
+    }
 
-        if (line.includes("ATC")) {
-            decodedNotes.push("ATC: air traffic control.")
-        }
+    if (allText.includes("TACAN OTS")) {
+        addNote("TACAN is out of service.")
+    }
 
-        if (line.includes("AC TYPE")) {
-            decodedNotes.push("AC type: aircraft type.")
-        }
+    if (allText.includes("BIRDS") || allText.includes("FLOCK OF BIRDS") || allText.includes("BIRD ACTIVITY")) {
+        addNote("Bird activity reported.")
+    }
 
-        if (line.includes("PARALLEL RWY OPERATION")) {
-            decodedNotes.push("Parallel runway operations are in progress.")
-        }
+    if (allText.includes("AEROMODELLING AREA")) {
+        addNote("Aeromodelling activity reported near the aerodrome.")
+    }
 
-        if (line.includes("MINIMIZE RWY OCCUPANCY")) {
-            decodedNotes.push("Pilots should minimize runway occupancy time.")
-        }
+    if (allText.includes("APCH")) {
+        addNote("APCH: approach.")
+    }
 
-        if (line.includes("VACATING RWY")) {
-            decodedNotes.push("After vacating the runway, pilots should continue taxiing without delay.")
-        }
+    match = allText.match(/\bFREQ(?:\s+IS)?\s+([\d\s.]+)/)
+    if (match) {
+        const frequency = match[1].replace(/\s+/g, "")
+        addNote(`Frequency: ${frequency}.`)
+    }
 
-        if (line.includes("CLR LIMIT")) {
-            decodedNotes.push("CLR limit: clearance limit.")
-        }
+    if (allText.includes("ATC")) {
+        addNote("ATC: air traffic control.")
+    }
 
-        if (line.includes("ON FIRST CONTACT STATE AC TYPE")) {
-            decodedNotes.push("On first contact, pilots should state aircraft type.")
-        }
+    if (allText.includes("AC TYPE")) {
+        addNote("AC type: aircraft type.")
+    }
+
+    if (allText.includes("PARALLEL RWY OPERATION")) {
+        addNote("Parallel runway operations are in progress.")
+    }
+
+    if (allText.includes("MINIMIZE RWY OCCUPANCY")) {
+        addNote("Pilots should minimize runway occupancy time.")
+    }
+
+    if (allText.includes("VACATING RWY")) {
+        addNote("After vacating the runway, pilots should continue taxiing without delay.")
+    }
+
+    if (allText.includes("CLR LIMIT")) {
+        addNote("CLR limit: clearance limit.")
+    }
+
+    if (allText.includes("ON FIRST CONTACT STATE AC TYPE")) {
+        addNote("On first contact, pilots should state aircraft type.")
+    }
+
+    if (allText.includes("READBACK ALL RWY HOLD SHORT INSTRUCTIONS")) {
+        addNote("Pilots must read back all runway hold-short instructions.")
+    }
+
+    if (allText.includes("NOTICE TO AIRMEN")) {
+        addNote("Notice to Airmen information is included.")
+    }
+
+    if (allText.includes("CLSD")) {
+        addNote("One or more runways or taxiways are closed.")
+    }
+
+    if (allText.includes("TWY")) {
+        addNote("Taxiway information is included.")
+    }
+
+    if (allText.includes("WAKE TURBULENCE")) {
+        addNote("Wake turbulence procedures or standards are mentioned.")
+    }
+
+    if (allText.includes("CRANE")) {
+        addNote("Crane activity or obstruction information is mentioned.")
+    }
+
+    if (allText.includes("PUSHBACK")) {
+        addNote("Pushback instructions are included.")
+    }
+
+    if (allText.includes("AIRCRAFT REQUESTED TO FOLLOW ATC INSTRUCTIONS")) {
+        addNote("Aircraft are requested to follow ATC instructions strictly.")
     }
 
     if (decodedNotes.length === 0) {
@@ -301,13 +466,14 @@ function autoResizeTextarea() {
 
 rawAtis.addEventListener("input", function() {
     autoResizeTextarea()
+    decodedStatus.textContent = ""
     copyStatus.textContent = ""
     exportStatus.textContent = ""
 })
 
 parseButton.addEventListener("click", function() {
     const inputText = rawAtis.value
-
+    decodedStatus.textContent = ""
     copyStatus.textContent = ""
     exportStatus.textContent = ""
 
@@ -323,6 +489,18 @@ parseButton.addEventListener("click", function() {
     decodedOutput.textContent = decodeAtisNotes(inputText)
     briefingOutput.textContent = formatBriefing(parsedData)
     jsonOutput.textContent = JSON.stringify(parsedData, null, 2)
+})
+
+copyDecodedButton.addEventListener("click", function() {
+    const decodedText = decodedOutput.textContent
+
+    if (decodedText.trim() === "" || decodedText === "No decoded notes detected.") {
+        decodedStatus.textContent = "No decoded notes to copy yet."
+        return
+    }
+
+    navigator.clipboard.writeText(decodedText)
+    decodedStatus.textContent = "Decoded notes copied."
 })
 
 copyJsonButton.addEventListener("click", function() {
@@ -365,6 +543,7 @@ for (const sample of sampleAtis) {
     button.addEventListener("click", function() {
         rawAtis.value = sample.text
         autoResizeTextarea()
+        decodedStatus.textContent = ""
         copyStatus.textContent = ""
         exportStatus.textContent = ""
     })
